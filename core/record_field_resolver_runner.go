@@ -784,6 +784,11 @@ func (r *runner) processLastProp(collection *Collection, prop string) (*search.R
 		}
 	}
 
+	switch field.Type() {
+	case FieldTypeAutodate, FieldTypeDate:
+		result.AfterBuild = search.HackDateNilBuild
+	}
+
 	// account for the ":lower" modifier
 	if modifier == lowerModifier {
 		result.Identifier = "LOWER(" + result.Identifier + ")"

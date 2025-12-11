@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -657,14 +658,24 @@ func numericJoin(l *ResolverResult, op string, r *ResolverResult) string {
 
 	// Note: Polyphormic literal such as "2" can be automatic casted to numeric type by PostgreSQL.
 	// Eg: SELECT "2" > 1  -- works fine.
-	if inferDeterministicType(l) != "numeric" && inferPolymorphicLiteral(l) == "" {
+	if inferDeterministicType(l) != "numeric" && inferPolymorphicLiteral(l) == "" && !isDateField(l) {
 		left = withNonJsonbType(left, "numeric")
 	}
-	if inferDeterministicType(r) != "numeric" && inferPolymorphicLiteral(r) == "" {
+	if inferDeterministicType(r) != "numeric" && inferPolymorphicLiteral(r) == "" && !isDateField(l) {
 		right = withNonJsonbType(right, "numeric")
 	}
 
 	return fmt.Sprintf("%s %s %s", left, op, right)
+}
+
+var HackDateNilBuild = func(expr dbx.Expression) dbx.Expression {
+	return expr
+}
+
+var hackDateNilBuildPtr = reflect.ValueOf(HackDateNilBuild).Pointer()
+
+func isDateField(f *ResolverResult) bool {
+	return reflect.ValueOf(f.AfterBuild).Pointer() == hackDateNilBuildPtr
 }
 
 // PostgreSQL only:
